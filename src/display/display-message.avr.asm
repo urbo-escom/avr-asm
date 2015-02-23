@@ -43,10 +43,17 @@
 ;
 
 .include "m48def.inc"
+.include "display-mux.avr.inc"
+.include "ascii2display.avr.inc"
 
 
 ; Controla la velocidad, en us, con la que rota el display
+.ifdef DEBUG
+; Velocidad rápida para que no tarde tanto una simulación
+.equ SPEED = (100000)
+.else
 .equ SPEED = (1000000)
+.endif
 
 
 .org 0x0
@@ -64,16 +71,25 @@
 
 
 ;
-; Multiplexa los  displays, los valores  de los  puertos se toman  de memoria,
-; debe ser lo  más rápido posible, en  este caso se multiplexará  cada 2 ms
-; aprox. completando una ronda cada 6 ms.
+; Multiplexa los displays,  debe ser lo más rápido posible,  en este caso se
+; multiplexará cada 2 ms aprox. completando una ronda cada 6 ms.
 ;
 
 .org TIMER0_OVF_int
 	rjmp display_mux_next
 
 
+.org 0x20
+.define DISPLAY_MUX_OUT_PORT    (PORTB)
+.define DISPLAY_MUX_SELECT_LEN  (3)
+.define DISPLAY_MUX_SELECT_PORT (PORTD)
+.define DISPLAY_MUX_SELECT_PINS ((1 << 7) | (1 << 6) | (1 << 5))
+        DISPLAY_MUX_SELECT_SEQ: .db (1 << 5), (1 << 6), (1 << 7), 0
 .dseg
+	; Valores de los displays, solo mostramos 3 a la vez
+	DISPLAY_MUX_SELECT_VALUES: .byte DISPLAY_MUX_SELECT_LEN
+	DISPLAY_MUX_SELECT_INDEX:  .byte 1
+
 	; Mensaje completo almacenado en memoria.
 	.equ BUF_SIZE = (128)
 	display_msg:        .byte BUF_SIZE
@@ -86,16 +102,7 @@
 
 	; Almacena si venimos (0) o regresamos (1) en el mensaje
 	display_direction: .byte 1
-
-
-	; Valores de los displays, solo mostramos 3 a la vez
-	.equ DISPLAY_SIZE = (3)
-	display_val: .byte DISPLAY_SIZE
-
-
 .cseg
-.org 0x20
-.include "ascii2display.avr.inc"
 
 	;
 	; Necesitamos un mensaje por default
@@ -125,12 +132,7 @@ main:
 
 
 conf_display:
-	ldi r16, 0xff
-	out DDRB, r16    ; PORTB para el display y
-	out DDRD, r16    ; PORTD para la multiplexación
-	ldi r16, 0
-	out PORTB, r16
-	out PORTD, r16
+	REQUIRE_DISPLAY_MUX_CONF
 
 
 	;
@@ -181,9 +183,9 @@ display_init:
 	sts display_msg_length, r16
 	sts display_msg_index, r16
 	sts display_direction, r16
-	sts display_val + 0, r16
-	sts display_val + 1, r16
-	sts display_val + 2, r16
+	sts DISPLAY_MUX_SELECT_VALUES + 0, r16
+	sts DISPLAY_MUX_SELECT_VALUES + 1, r16
+	sts DISPLAY_MUX_SELECT_VALUES + 2, r16
 
 
 	;
@@ -224,15 +226,15 @@ display_init:
 
 	ldd r17, Y+0
 	rcall ascii2display
-	sts display_val+0, r16
+	sts DISPLAY_MUX_SELECT_VALUES+0, r16
 
 	ldd r17, Y+1
 	rcall ascii2display
-	sts display_val+1, r16
+	sts DISPLAY_MUX_SELECT_VALUES+1, r16
 
 	ldd r17, Y+2
 	rcall ascii2display
-	sts display_val+2, r16
+	sts DISPLAY_MUX_SELECT_VALUES+2, r16
 	ret
 
 
@@ -309,55 +311,25 @@ display_rotate:
 
 		ldd r17, Z+0
 		rcall ascii2display
-		sts display_val+0, r16
+		sts DISPLAY_MUX_SELECT_VALUES+0, r16
 
 		ldd r17, Z+1
 		rcall ascii2display
-		sts display_val+1, r16
+		sts DISPLAY_MUX_SELECT_VALUES+1, r16
 
 		ldd r17, Z+2
 		rcall ascii2display
-		sts display_val+2, r16
+		sts DISPLAY_MUX_SELECT_VALUES+2, r16
 	reti
 
 
 display_mux_next:
-	in r16, PIND     ; Apaga cualquier valor que tengamos en el selector
-	ldi r17, 0       ; de displays,  pero  antes hay que  guardarlo para
-	out PORTD, r17   ; saber cual es el siguiente.
+	in r16, SREG
+	REQUIRE_DISPLAY_MUX_NEXT
+	out SREG, r16
+	reti
 
 
-	cpi r16, (1 << 5)
-		breq _display_mux_next_1
-
-
-	cpi r16, (1 << 6)
-		breq _display_mux_next_2
-
-
-	cpi r16, (1 << 7)
-		breq _display_mux_next_0
-
-
-	_display_mux_next_0:
-		ldi r16, (1 << 5)
-		out PORTD, r16
-		lds r16, display_val + 0
-		out PORTB, r16
-		reti
-
-
-	_display_mux_next_1:
-		ldi r16, (1 << 6)
-		out PORTD, r16
-		lds r16, display_val + 1
-		out PORTB, r16
-		reti
-
-
-	_display_mux_next_2:
-		ldi r16, (1 << 7)
-		out PORTD, r16
-		lds r16, display_val + 2
-		out PORTB, r16
-		reti
+ascii2display:
+	REQUIRE_ASCII2DISPLAY
+	ret

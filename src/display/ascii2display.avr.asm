@@ -1,10 +1,10 @@
 .include "m48def.inc"
+.include "ascii2display.avr.inc"
 
 .org 0x0
 	rjmp reset
 
 .org 0x20
-.include "ascii2display.avr.inc"
 
 reset:
 	ldi r17, high(RAMEND)
@@ -38,3 +38,8 @@ main:
 _main_clear_ascii:
 	ldi r17, 0
 	rjmp main
+
+
+ascii2display:
+	REQUIRE_ASCII2DISPLAY
+	ret
