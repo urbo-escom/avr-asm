@@ -1,0 +1,4 @@
+bin/avr-sim
+bin/linux-32/
+bin/linux-64/
+bin/win32/

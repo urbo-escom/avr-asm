@@ -1,0 +1,35 @@
+#!/bin/sh
+# USAGE hex2asm [--add-global-main] AVR_OBJDUMP_OPTION...
+#
+# Transform the output of avr-objdump of an hex file (with no raw insn):
+#
+#     YY: instr arg ...
+#
+# with
+#
+#     .org 0xYY
+#         instr arg ...
+#
+# We need this  transformation or we will lost relative  information like jump
+# tables or interrupt  vectors. After the transformation, you  can compile the
+# assembler into an object file and then an elf file with avr-as and avr-ld:
+#
+#     avr-as -mmcu=DEVICE -o foo.o foo.S
+#     avr-ld -o foo.elf foo.o
+#
+# But if you need to use avr-gcc, try putting a `.global main` directive and a
+# `main` label in the transformed assembler, where it should be placed depends
+# on the assembler code. If you have a reset routine in the interrupt vectors,
+# as  every program  should have,  then  you can  use the  `--add-global-main`
+# option which includes the definition before the normal output.
+#
+
+: ${global_main:=""}
+if [ "$1" = "--add-global-main" ]; then
+	shift;
+	global_main=".global main\nmain:\n"
+fi
+
+avr-objdump -D -z "$@"  --no-show-raw-insn | (printf "${global_main}"; \
+	grep '^ *[0-9a-f]\+:' | awk -F":" \
+	'{ sub(/^[ \t\r\n]+/, "", $1); print ".org 0x" $1; print $2; }')
