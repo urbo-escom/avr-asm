@@ -43,8 +43,6 @@
 ;
 
 .include "m48def.inc"
-.include "display-mux.avr.inc"
-.include "ascii2display.avr.inc"
 
 
 ; Controla la velocidad, en us, con la que rota el display
@@ -80,6 +78,10 @@
 
 
 .org 0x20
+.include "util/display-mux.avr.asm"
+.include "util/ascii2display.avr.asm"
+
+
 .define DISPLAY_MUX_OUT_PORT    (PORTB)
 .define DISPLAY_MUX_SELECT_LEN  (3)
 .define DISPLAY_MUX_SELECT_PORT (PORTD)
@@ -324,12 +326,9 @@ display_rotate:
 
 
 display_mux_next:
+	push r16
 	in r16, SREG
 	REQUIRE_DISPLAY_MUX_NEXT
 	out SREG, r16
+	pop r16
 	reti
-
-
-ascii2display:
-	REQUIRE_ASCII2DISPLAY
-	ret
