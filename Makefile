@@ -1,13 +1,17 @@
+.SUFFIXES:
 MK_FILES :=
 MK_FILES += lib/rules.mk
 MK_FILES += bin/rules.mk
 
+SRC_DIR := src
 SRC_DIRS :=
+SRC_DIRS += util/
 SRC_DIRS += display/
 SRC_DIRS += examples/
 SRC_DIRS += project/
 SRC_DIRS += string/
 SRC_DIRS += uart/
+SRC_DIRS += adc/
 SRC_DIRS := $(addprefix src/, ${SRC_DIRS})
 
 MK_FILES += $(addsuffix rules.mk, ${SRC_DIRS})
@@ -32,7 +36,7 @@ $(foreach fst, ${AVR_FST}, $(eval ${fst}: lib/m48def.mk))
 $(foreach asm, $(call rwildcard, ${SRC_DIRS}, *.asm), \
 	$(eval .PHONY: install-${asm:%.asm=%.hex}) \
 	$(eval install-${asm:%.asm=%.hex}: ${asm:%.asm=%.hex} ; \
-		$${AVRDUDE_INSTALL}))
+		$${AVRDUDE_INSTALL_FLASH}))
 
 
 .DEFAULT_GOAL = all
@@ -48,7 +52,7 @@ all-hex: ${AVR_HEX}
 all-fst: ${AVR_FST}
 
 clean:
-	rm -f $(strip $(wildcard $(sort \
+	rm -f $(strip $(wildcard tmp/* $(sort \
 		${AVR_HEX} \
 		${AVR_FST} \
 	)))

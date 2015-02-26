@@ -6,7 +6,7 @@ AVRDUDE            ?= avrdude
 AVRDUDE_PROGRAMMER ?= usbasp
 AVR_MMCU_AVRDUDE   ?= m48pa
 
-AVRDUDE_INSTALL = ${AVRDUDE} \
+AVRDUDE_INSTALL_FLASH = ${AVRDUDE} \
 	-c ${AVRDUDE_PROGRAMMER} \
 	-p ${AVR_MMCU_AVRDUDE} \
 	-U flash:w:$<:i
@@ -16,15 +16,16 @@ AVRDUDE_INSTALL = ${AVRDUDE} \
 # Compile avr code with AVRA
 #
 
+
+AVRA_COMPILE = ${AVRA} $(call avra_inc_lib, ${AVRA_LIB_ALL}) $< && \
+	rm -f $*.obj $*.eep.hex $*.cof
+	
 AVRA ?= avra
-AVRA_LIB_ALL := lib
+AVRA_LIB_ALL := lib src
 avra_inc_lib = $(strip $(foreach lib, $1, -I ${lib}))
 
 %.hex: %.asm
-	${AVRA} $(call avra_inc_lib, ${AVRA_LIB_ALL} ${AVRA_LIB}) $< && \
-	${RM} $*.cof \
-	${RM} $*.obj \
-	${RM} $*.eep.hex
+	${AVRA_COMPILE}
 
 
 #
