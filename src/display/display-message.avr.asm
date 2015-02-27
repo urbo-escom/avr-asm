@@ -94,16 +94,16 @@
 
 	; Mensaje completo almacenado en memoria.
 	.equ BUF_SIZE = (128)
-	display_msg:        .byte BUF_SIZE
-	display_msg_length: .byte 1
+	DISPLAY_MSG:        .byte BUF_SIZE
+	DISPLAY_MSG_LENGTH: .byte 1
 
 
 	; Almacena en donde nos encontramos en el mensaje
-	display_msg_index: .byte 1
+	DISPLAY_MSG_INDEX: .byte 1
 
 
 	; Almacena si venimos (0) o regresamos (1) en el mensaje
-	display_direction: .byte 1
+	DISPLAY_DIRECTION: .byte 1
 .cseg
 
 	;
@@ -181,10 +181,10 @@ conf_display:
 display_init:
 	; Inicializa todo a 0
 	ldi r16, 0
-	sts display_msg, r16
-	sts display_msg_length, r16
-	sts display_msg_index, r16
-	sts display_direction, r16
+	sts DISPLAY_MSG, r16
+	sts DISPLAY_MSG_LENGTH, r16
+	sts DISPLAY_MSG_INDEX, r16
+	sts DISPLAY_DIRECTION, r16
 	sts DISPLAY_MUX_SELECT_VALUES + 0, r16
 	sts DISPLAY_MUX_SELECT_VALUES + 1, r16
 	sts DISPLAY_MUX_SELECT_VALUES + 2, r16
@@ -200,8 +200,8 @@ display_init:
 	ldi ZH, high(2*display_default_msg)
 	ldi ZL,  low(2*display_default_msg)
 
-	ldi YH, high(display_msg)
-	ldi YL,  low(display_msg)
+	ldi YH, high(DISPLAY_MSG)
+	ldi YL,  low(DISPLAY_MSG)
 
 
 	ldi r17, 0
@@ -217,14 +217,14 @@ display_init:
 		inc r17                  ; r17++
 		rjmp _display_init_msg   ;
 	_display_init_end:
-	sts display_msg_length, r17      ;
+	sts DISPLAY_MSG_LENGTH, r17      ;
 	ldi r16, 0                       ; Añade el caracter '\0' para que
 	st Y, r16                        ; sea  una cadena  bien terminada
 
 
 	; Copia los primeros tres caracteres del mensaje cargado
-	ldi YH, high(display_msg)
-	ldi YL,  low(display_msg)
+	ldi YH, high(DISPLAY_MSG)
+	ldi YL,  low(DISPLAY_MSG)
 
 	ldd r17, Y+0
 	rcall ascii2display
@@ -241,9 +241,9 @@ display_init:
 
 
 display_rotate:
-	lds r16, display_direction
-	lds r17, display_msg_index
-	lds r18, display_msg_length
+	lds r16, DISPLAY_DIRECTION
+	lds r17, DISPLAY_MSG_INDEX
+	lds r18, DISPLAY_MSG_LENGTH
 
 
 	;
@@ -276,7 +276,7 @@ display_rotate:
 		; iteraciones.
 		_display_rotate_next_left:
 			ldi r16, 1
-			sts display_direction, r16
+			sts DISPLAY_DIRECTION, r16
 		rjmp _display_rotate_load
 
 
@@ -294,7 +294,7 @@ display_rotate:
 
 		_display_rotate_next_right:
 			ldi r16, 0
-			sts display_direction, r16
+			sts DISPLAY_DIRECTION, r16
 		rjmp _display_rotate_load
 
 
@@ -303,10 +303,10 @@ display_rotate:
 	; estar en el cambio de rotación) y listo.
 	;
 	_display_rotate_load:
-		sts display_msg_index, r17
+		sts DISPLAY_MSG_INDEX, r17
 
-		ldi ZH, high(display_msg)
-		ldi ZL,  low(display_msg)
+		ldi ZH, high(DISPLAY_MSG)
+		ldi ZL,  low(DISPLAY_MSG)
 		clr r0
 		add ZL, r17
 		adc ZH, r0
